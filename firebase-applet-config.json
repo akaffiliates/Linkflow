@@ -1,0 +1,10 @@
+{
+  "projectId": "smp-cash",
+  "appId": "1:719113973399:web:55aa1bd903df1d25ef83d2",
+  "apiKey": "AIzaSyDkaxREQXhJJWm9K6qYdUIzo2RdXR1dUSw",
+  "authDomain": "smp-cash.firebaseapp.com",
+  "databaseURL": "https://smp-cash-default-rtdb.firebaseio.com",
+  "storageBucket": "smp-cash.firebasestorage.app",
+  "messagingSenderId": "719113973399",
+  "firestoreDatabaseId": "(default)"
+}

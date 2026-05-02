@@ -1,0 +1,91 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user account details and status.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "credits": { "type": "number" },
+        "isBlocked": { "type": "boolean" },
+        "isAdmin": { "type": "boolean" },
+        "createdAt": { "type": "number", "format": "timestamp" }
+      },
+      "required": ["name", "email", "credits", "isBlocked", "isAdmin"]
+    },
+    "Link": {
+      "title": "Video Link",
+      "description": "Video links submitted by users for exchange.",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "title": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "viewsRemaining": { "type": "number" },
+        "createdAt": { "type": "number", "format": "timestamp" }
+      },
+      "required": ["url", "title", "ownerId", "viewsRemaining", "createdAt"]
+    },
+    "Post": {
+      "title": "Social Post",
+      "description": "Community posts sharing tips or updates.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "content": { "type": "string" },
+        "likes": { "type": "number" },
+        "createdAt": { "type": "number", "format": "timestamp" }
+      },
+      "required": ["authorId", "authorName", "content", "likes", "createdAt"]
+    },
+    "Comment": {
+      "title": "Social Comment",
+      "description": "Comments on social posts.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "number", "format": "timestamp" }
+      },
+      "required": ["postId", "authorId", "authorName", "text", "createdAt"]
+    },
+    "TaskLog": {
+      "title": "Task Completion Log",
+      "description": "Log of completed link viewing tasks.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "linkId": { "type": "string" },
+        "completedAt": { "type": "number", "format": "timestamp" }
+      },
+      "required": ["userId", "linkId", "completedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles indexed by UID."
+    },
+    "/links/{linkId}": {
+      "schema": "Link",
+      "description": "Available video links for the exchange."
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Community posts."
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Comments for a specific post."
+    },
+    "/taskLogs/{logId}": {
+      "schema": "TaskLog",
+      "description": "Audit trail for task completions."
+    }
+  }
+}

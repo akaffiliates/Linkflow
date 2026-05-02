@@ -1,0 +1,6 @@
+{
+  "name": "LinkFlow",
+  "description": "A full-featured link exchange platform with Firebase Auth, credit mining, community feed, and an admin panel for user management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

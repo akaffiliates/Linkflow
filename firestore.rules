@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Admin check: verified against a trusted document
+    function isAdmin() { 
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    function isNotBlocked() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBlocked == false;
+    }
+
+    // --- Users ---
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      
+      allow create: if isSignedIn() && request.auth.uid == userId && 
+        incoming().keys().hasAll(['name', 'email', 'credits', 'isBlocked', 'isAdmin', 'createdAt']) &&
+        incoming().keys().size() == 6 &&
+        incoming().credits == 0 && // Starting credits set to 0 as requested
+        incoming().isAdmin == false &&
+        incoming().isBlocked == false &&
+        incoming().email == request.auth.token.email &&
+        incoming().name is string &&
+        incoming().createdAt == request.time;
+
+      allow update: if isSignedIn() && (
+        // Admin can update anything (credits, block status)
+        isAdmin() || 
+        // User can update their own name
+        (request.auth.uid == userId && isNotBlocked() && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['name']) &&
+         incoming().name is string && incoming().name.size() <= 50)
+      );
+    }
+
+    // --- Links ---
+    match /links/{linkId} {
+      allow read: if isSignedIn() && isNotBlocked();
+      
+      allow create: if isSignedIn() && isNotBlocked() &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().viewsRemaining >= 1 &&
+        incoming().createdAt == request.time &&
+        // Check if user has at least 1 credit
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.credits >= 1;
+
+      allow update: if isSignedIn() && isNotBlocked() && (
+        isAdmin() ||
+        // Owner can update title
+        (existing().ownerId == request.auth.uid && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['title']) &&
+         incoming().title is string && incoming().title.size() <= 100) ||
+        // Others can decrement viewsRemaining during task completion
+        (incoming().diff(existing()).affectedKeys().hasOnly(['viewsRemaining']) &&
+         incoming().viewsRemaining == existing().viewsRemaining - 1 &&
+         incoming().viewsRemaining >= 0)
+      );
+      
+      allow delete: if isAdmin() || (isSignedIn() && existing().ownerId == request.auth.uid);
+    }
+
+    // --- Posts ---
+    match /posts/{postId} {
+      allow read: if isSignedIn() && isNotBlocked();
+      allow create: if isSignedIn() && isNotBlocked() &&
+        incoming().authorId == request.auth.uid &&
+        incoming().likes == 0 &&
+        incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isNotBlocked() && (
+        isAdmin() ||
+        (existing().authorId == request.auth.uid && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['content']) &&
+         incoming().content is string) ||
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likes']))
+      );
+      allow delete: if isAdmin() || (isSignedIn() && existing().authorId == request.auth.uid);
+
+      match /comments/{commentId} {
+        allow read: if isSignedIn() && isNotBlocked();
+        allow create: if isSignedIn() && isNotBlocked() &&
+          incoming().authorId == request.auth.uid &&
+          incoming().createdAt == request.time;
+      }
+    }
+
+    // --- Task Logs ---
+    match /taskLogs/{logId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isNotBlocked() &&
+        incoming().userId == request.auth.uid &&
+        incoming().completedAt == request.time;
+    }
+  }
+}
